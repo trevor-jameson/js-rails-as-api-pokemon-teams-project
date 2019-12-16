@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 // Takes an array of pokemon objects and enumeratively renders to page
 function renderAllTrainers() {
-    fetchAllTrainers().then(trainers => {
+    getAllTrainers().then(trainers => {
         trainers.forEach(trainer => {
             console.table(trainer.pokemons)
             renderSingleTrainer(trainer)
@@ -25,7 +25,7 @@ function renderSingleTrainer(trainer) {
 
     const trainerCard = document.createElement('div')
     trainerCard.classList.add('card')
-    trainerCard.dataset.id = 1
+    trainerCard.id = `trainer-${trainer.id}`
     TRAINERS_CONTAINER.append(trainerCard)
 
     const trainerName = document.createElement('p')
@@ -35,6 +35,7 @@ function renderSingleTrainer(trainer) {
     const addPokemonBtn = document.createElement('button')
     addPokemonBtn.dataset.trainerId = trainer.id
     addPokemonBtn.innerText = "Add Pokemon"
+    addPokemonBtn.addEventListener('click', postPokemon)
     trainerCard.append(addPokemonBtn)
 
     const pokemonList = document.createElement('ul')
@@ -60,26 +61,62 @@ function renderSingleTrainer(trainer) {
 
 }
 
-function renderPokemonListItem(pokemon, trainerCard) {
+function renderPokemonListItem(pokemon, listItem) {
 
     const pokemonLi = document.createElement('li')
     pokemonLi.innerText = `${pokemon.nickname} (${pokemon.species}) `
-    trainerCard.append(pokemonLi)
+    listItem.append(pokemonLi)
 
     const pokemonBtn = document.createElement('button')
     pokemonBtn.classList.add('release')
     pokemonBtn.innerText = 'Release'
     pokemonBtn.dataset.pokemonId = pokemon.id
+    pokemonBtn.addEventListener('click', deleteSinglePokemon)
     pokemonLi.append(pokemonBtn)
-
     
 }
 
 
 
-function fetchAllTrainers() {
+function getAllTrainers() {
     return fetch(TRAINERS_URL)
         .then(data => data.json())
         .catch(console.log)
 }
 
+function postPokemon(event) {
+
+    const listSize = event.currentTarget.parentElement.querySelectorAll('li').length
+    // Only fetch if there're no more than 6 pokemon items in the list
+
+    if (listSize < 6) {
+        const trainerId = event.currentTarget.dataset.trainerId
+        fetch(POKEMONS_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                trainer_id: trainerId
+            })
+        })
+        .then(res => res.json())
+        .then(mon => {
+            const trainerList = document.getElementById(`trainer-${mon.trainer_id}`).querySelector('ul')
+            renderPokemonListItem(mon, trainerList)
+        })
+    }
+}
+
+function deleteSinglePokemon(event) {
+    const targetButton = event.currentTarget
+    targetButton.parentElement.remove()
+    debugger
+
+    fetch(POKEMONS_URL + `/${targetButton.dataset.pokemonId}`, {
+        method: 'DELETE',
+    })
+    .then(res => {
+        console.log(res)
+    })
+}
